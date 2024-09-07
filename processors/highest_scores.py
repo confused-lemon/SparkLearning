@@ -23,7 +23,7 @@ class HighestScoringPosts:
         """Gets the highest scored posts for the last week"""
         sub_query = f"""(SELECT * 
                     FROM {self.credentials['main_table']}
-                    WHERE DATE(snapshot_time_utc) = CURRENT_DATE - INTERVAL '7 days') as subquery"""
+                    WHERE DATE(snapshot_time_utc) >= CURRENT_DATE - INTERVAL '7 days') as subquery"""
 
         df = self.session.read.jdbc(url=self.connection_url, table=sub_query, properties=self.connection)
         df_grouped_desc = df.select("id", "title", "subreddit", "score", "upvote_ratio", "snapshot_time_utc") \

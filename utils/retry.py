@@ -11,8 +11,7 @@ def retry(retries: int = 3, delay: float = 1) -> Callable:
                     return func(*args, **kwargs)
                 except Exception as e:
                     if i == retries:
-                        print(f'Error: {repr(e)}.')
-                        print(f'"{func.__name__}()" failed after {retries} retries.')
+                        #TODO: setup logging to replace prints
                         break
                     else:
                         sleep(delay)

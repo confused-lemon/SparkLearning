@@ -31,3 +31,4 @@ if __name__ == "__main__":
 
     driver = HighestScoringPosts(spark_session, connection, credentials_dict)
     result =  driver.get_highest_scores_last_week()
+    spark_session.stop()

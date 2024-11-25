@@ -1,18 +1,19 @@
 from pyspark.sql import SparkSession
-import yaml
-from processors.highest_scores import HighestScoringPosts
+from processors.highest_scores import HighestScoringPosts 
+import yaml, argparse
 
-if __name__ == "__main__":
+def main(is_remote: bool):
     with open('credentials.yaml', 'r') as cred_file:
         credentials = yaml.safe_load(cred_file)
+        db_info = 'Database' if not is_remote else 'Database_Remote'
 
         credentials_dict = {
-        'ip_addr' : credentials['Database']['ip_addr'],
-        'port' : credentials['Database']['port'],
-        'username' : credentials['Database']['username'],
-        'db' : credentials['Database']['database'],
-        'main_table' : credentials['Database']['main_table'],
-        'password' : credentials['Database']['password']
+        'ip_addr' : credentials[db_info]['ip_addr'],
+        'port' : credentials[db_info]['port'],
+        'username' : credentials[db_info]['username'],
+        'db' : credentials[db_info]['database'],
+        'main_table' : credentials[db_info]['main_table'],
+        'password' : credentials[db_info]['password']
         }
 
     spark_session = SparkSession.builder \
@@ -30,5 +31,15 @@ if __name__ == "__main__":
     }
 
     driver = HighestScoringPosts(spark_session, connection, credentials_dict)
+    # month_result = driver.get_highest_scores_last_month()
+    
     result =  driver.get_highest_scores_last_week()
+    result.show()
     spark_session.stop()
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-e', '--remote', action='store_true', help='Flag to indicate conection from remote network.')
+    args = parser.parse_args()
+    is_remote: bool = args.remote
+    main(is_remote)

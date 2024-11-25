@@ -9,7 +9,7 @@ class HighestScoringPosts:
         self.connection = connection
         self.credentials = credentials
         self.today = datetime.today().strftime('%Y-%m-%d')
-        self.connection_url = f"jdbc:postgresql://{self.credentials['ip_addr']}:{self.credentials['port']}/{self.credentials['db']}"
+        self.connection_url = f"jdbc:postgresql://{self.credentials['ip_addr']}:{self.credentials['port']}/{self.credentials['db']}"#?socketTimeout=60
 
     def get_highest_scores_all_time(self):
         """Gets the highest scores for all posts"""
@@ -17,20 +17,30 @@ class HighestScoringPosts:
 
     def get_highest_scores_last_month(self):
         """Gets the highest scored posts for the last month"""
-        raise NotImplementedError
+        sub_query = f"""(SELECT * 
+                    FROM {self.credentials['main_table']}
+                    WHERE DATE(snapshot_time_utc) >= CURRENT_DATE - INTERVAL '1 month') as prev_month"""
+        
+        df = self.session.read.jdbc(url=self.connection_url, table=sub_query, properties=self.connection)
+        df_grouped = df.select("id", "title", "subreddit", "score", "upvote_ratio", "snapshot_time_utc") \
+        .orderBy(col("snapshot_time_utc")) 
+
+        # pands_df = df.df_grouped
+
 
     def get_highest_scores_last_week(self):
         """Gets the highest scored posts for the last week"""
         sub_query = f"""(SELECT * 
                     FROM {self.credentials['main_table']}
-                    WHERE DATE(snapshot_time_utc) >= CURRENT_DATE - INTERVAL '7 days') as subquery"""
+                    WHERE DATE(snapshot_time_utc) >= CURRENT_DATE - INTERVAL '7 days') as prev_week"""
 
         df = self.session.read.jdbc(url=self.connection_url, table=sub_query, properties=self.connection)
-        df_grouped_desc = df.select("id", "title", "subreddit", "score", "upvote_ratio", "snapshot_time_utc") \
-        .orderBy(col("snapshot_time_utc").asc()) 
+        df_grouped_desc = (df.select("id", "title", "subreddit", "score", "upvote_ratio", "snapshot_time_utc") 
+        .orderBy(col("score").desc()).limit(15)
+        )
         
-        pandas_df = df_grouped_desc.toPandas()
-        pandas_df.to_csv("records.csv", index=False)
+
+        return df_grouped_desc
 
     def get_highest_scores_last_day(self):
         """Gets the highest scored posts for the last day"""

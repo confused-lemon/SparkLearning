@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import *
+from pyspark.sql.functions import col, max
 from datetime import datetime
 import pandas as pd
 
@@ -26,6 +26,7 @@ class HighestScoringPosts:
         .orderBy(col("snapshot_time_utc")) 
 
         # pands_df = df.df_grouped
+        return df_grouped
 
 
     def get_highest_scores_last_week(self):
@@ -35,8 +36,10 @@ class HighestScoringPosts:
                     WHERE DATE(snapshot_time_utc) >= CURRENT_DATE - INTERVAL '7 days') as prev_week"""
 
         df = self.session.read.jdbc(url=self.connection_url, table=sub_query, properties=self.connection)
-        df_grouped_desc = (df.select("id", "title", "subreddit", "score", "upvote_ratio", "snapshot_time_utc") 
-        .orderBy(col("score").desc()).limit(15)
+        df_grouped_desc = (df.select("id", "title", "subreddit", "score", "upvote_ratio", "snapshot_time_utc")
+        .groupBy("id", "title", "subreddit")
+        .agg(max("score").alias("max_score")) 
+        .orderBy(col("max_score").desc()).limit(15)
         )
         
 

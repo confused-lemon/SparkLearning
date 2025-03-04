@@ -9,7 +9,7 @@ class HighestScoringPosts:
         self.connection = connection
         self.credentials = credentials
         self.today = datetime.today().strftime('%Y-%m-%d')
-        self.connection_url = f"jdbc:postgresql://{self.credentials['ip_addr']}:{self.credentials['port']}/{self.credentials['db']}"#?socketTimeout=60
+        self.connection_url = f"jdbc:postgresql://{self.credentials['ip_addr']}:{self.credentials['port']}/{self.credentials['db']}"
 
     def get_highest_scores_all_time(self):
         """Gets the highest scores for all posts"""
@@ -25,7 +25,6 @@ class HighestScoringPosts:
         df_grouped = df.select("id", "title", "subreddit", "score", "upvote_ratio", "snapshot_time_utc") \
         .orderBy(col("snapshot_time_utc")) 
 
-        # pands_df = df.df_grouped
         return df_grouped
 
 
@@ -42,7 +41,6 @@ class HighestScoringPosts:
         .orderBy(col("max_score").desc()).limit(15)
         )
         
-
         return df_grouped_desc
 
     def get_highest_scores_last_day(self):

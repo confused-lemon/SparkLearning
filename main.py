@@ -34,12 +34,14 @@ def main(is_remote: bool):
     # month_result = driver.get_highest_scores_last_month()
     
     result =  driver.get_highest_scores_last_week()
-    result.show()
+    month_results = driver.get_highest_scores_last_month()
+    # result.show()
+    month_results.coalesce(1).write.csv('output/', header=True, mode='overwrite')
     spark_session.stop()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-e', '--remote', action='store_true', help='Flag to indicate conection from remote network.')
+    parser.add_argument('-e', '--remote', action='store_true', help='Flag to indicate connection from remote network.')
     args = parser.parse_args()
     is_remote: bool = args.remote
     main(is_remote)

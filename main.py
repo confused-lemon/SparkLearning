@@ -1,6 +1,7 @@
 # Python3.9
 from pyspark.sql import SparkSession
 from processors.highest_scores import HighestScoringPosts 
+from processors.title_sent_analysis import BulkTitleAnalysis
 import yaml, argparse
 
 def main(is_remote: bool):
@@ -31,13 +32,15 @@ def main(is_remote: bool):
     "driver" : "org.postgresql.Driver"
     }
 
-    driver = HighestScoringPosts(spark_session, connection, credentials_dict)
+    # driver = HighestScoringPosts(spark_session, connection, credentials_dict)
     # month_result = driver.get_highest_scores_last_month()
     
-    result =  driver.get_highest_scores_last_week()
-    month_results = driver.get_highest_scores_last_month()
+    # result =  driver.get_highest_scores_last_week()
+    # month_results = driver.get_highest_scores_last_month()
     # result.show()
-    month_results.coalesce(1).write.csv('output/', header=True, mode='overwrite')
+    # month_results.coalesce(1).write.csv('output/', header=True, mode='overwrite')
+    title_analysis = BulkTitleAnalysis(spark_session, connection, credentials_dict)
+    title_analysis.break_into_year_months()
     spark_session.stop()
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 from datetime import datetime
-from pyspark.sql.functions import col, max, year, month
+from pyspark.sql.functions import col, max, year, month, asc
 from pyspark.sql import SparkSession
 from nltk.sentiment import SentimentIntensityAnalyzer
 
@@ -25,7 +25,7 @@ class BulkTitleAnalysis:
     
     def title_sentiment_analysis_scores(self, title: str):
         """Returns sentiment analysis of a given post title"""
-        return self.title_analizer.polarity_scores(title.replace('#', ' ')) # polarity_scores ignores #'s
+        return self.title_analizer.polarity_scores(title.replace('#', ' ')) # polarity_scores ignores hashtagged words
     
     def break_into_year_months(self):
         """Breaks data into year/month blocks for grouped analysis"""
@@ -33,6 +33,13 @@ class BulkTitleAnalysis:
         year_month = df.withColumn("year", year(col('snapshot_time_utc')))\
                         .withColumn("month", month(col("snapshot_time_utc")))
         years_and_months = year_month.select("year", "month").distinct().collect()
-        for row in years_and_months:
-            y, m = row['year'], row['month']
-            print(f"Year: {y}, Month: {m}")
+        return sorted(years_and_months)
+    
+    def sent_analysis_of_political_posts_six_weeks(self):
+        #subs: 'news', 'worldnews', 'geopolitics', 'nottheonion', 'politics', 'internationalpolitics', 'democrats', 'conservative'
+        sub_q = f"""(select * from {self.credentials['main_table']} 
+        where subreddit in ('news', 'worldnews', 'geopolitics', 'nottheonion', 'politics', 'internationalpolitics', 'democrats', 'conservative')
+        and date(snapshot_time_utc) >= '2024-09-23' and date(snapshot_time_utc) <= '2024-12-16') as sub_query"""
+        return self.session.read.jdbc(url=self.connection_url, table=sub_q, properties=self.connection) \
+            .sort(asc('snapshot_time_utc'))
+        

@@ -14,6 +14,11 @@ class HighestScoringPosts:
     def get_highest_scores_all_time(self):
         """Gets the highest scores for all posts"""
 
+    def get_subs(self):
+        df = self.session.read.jdbc(url=self.connection_url, table='main_post_data', properties=self.connection)
+        df = df.select("subreddit").distinct()
+        return df
+
 
     def get_highest_scores_last_month(self):
         """Gets the highest scored posts for the last month"""

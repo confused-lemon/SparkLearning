@@ -36,7 +36,6 @@ class BulkTitleAnalysis:
         return sorted(years_and_months)
     
     def sent_analysis_of_political_posts_six_weeks(self):
-        #subs: 'news', 'worldnews', 'geopolitics', 'nottheonion', 'politics', 'internationalpolitics', 'democrats', 'conservative'
         sub_q = f"""(select * from {self.credentials['main_table']} 
         where subreddit in ('news', 'worldnews', 'geopolitics', 'nottheonion', 'politics', 'internationalpolitics', 'democrats', 'conservative')
         and date(snapshot_time_utc) >= '2024-09-23' and date(snapshot_time_utc) <= '2024-12-16') as sub_query"""

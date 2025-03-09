@@ -1,7 +1,6 @@
 from datetime import datetime
 from pyspark.sql.functions import col, max, year, month, asc
 from pyspark.sql import SparkSession
-from nltk.sentiment import SentimentIntensityAnalyzer
 
 # Ideas: scores based on position, time on 100
 # score based on median pos/neg/neu score of title
@@ -21,11 +20,7 @@ class BulkTitleAnalysis:
         self.credentials = credentials
         self.today = datetime.today().strftime('%Y-%m-%d')
         self.connection_url = f"jdbc:postgresql://{self.credentials['ip_addr']}:{self.credentials['port']}/{self.credentials['db']}"
-        self.title_analizer = SentimentIntensityAnalyzer()
     
-    def title_sentiment_analysis_scores(self, title: str):
-        """Returns sentiment analysis of a given post title"""
-        return self.title_analizer.polarity_scores(title.replace('#', ' ')) # polarity_scores ignores hashtagged words
     
     def break_into_year_months(self):
         """Breaks data into year/month blocks for grouped analysis"""

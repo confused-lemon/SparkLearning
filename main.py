@@ -1,7 +1,7 @@
 # Python3.9
 from pyspark.sql import SparkSession
-from processors.highest_scores import HighestScoringPosts 
-from processors.title_sent_analysis import BulkTitleAnalysis
+from Python.highest_scores import HighestScoringPosts 
+from Python.title_sent_analysis import BulkTitleAnalysis
 import yaml, argparse
 
 def main(is_remote: bool):
@@ -38,7 +38,7 @@ def main(is_remote: bool):
 
     election_analysis = BulkTitleAnalysis(spark_session, connection, credentials_dict)
     election_post_data = election_analysis.sent_analysis_of_political_posts_six_weeks()
-    election_post_data.write.csv('output/six_weeks_election', header=True, mode='overwrite')
+    election_post_data.write.option("quote", '"').option("escape", '"').csv('output/six_weeks_election', header=True, mode='overwrite')
     # month_result = driver.get_highest_scores_last_month()
     
     # result =  driver.get_highest_scores_last_week()

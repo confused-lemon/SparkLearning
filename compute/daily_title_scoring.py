@@ -58,13 +58,13 @@ samp_query = '(SELECT id, title from sandbox_data_table) as sub_q' #table for te
 connection_url = f"jdbc:postgresql://{credentials_dict['ip_addr']}:{credentials_dict['port']}/{credentials_dict['db']}"
 
 df = spark_session.read.jdbc(url=connection_url, table=samp_query, properties=connection)
-
-df = df.withColumn("scores_tuple", score_udf(df['title']))
+df = df.dropDuplicates(subset=['id']) \
+    .withColumn("scores_tuple", score_udf(df['title']))
 
 df = df.withColumn("pos_scr", df["scores_tuple.pos"]) \
     .withColumn("neg_scr", df["scores_tuple.neg"]) \
     .withColumn("neu_scr", df["scores_tuple.neu"]) \
-    .drop('scores_tuple', 'title') \
-    .dropDuplicates(subset=['id'])
+    .drop('scores_tuple', 'title')
+
 
 df.write.jdbc(url=connection_url, table='title_sentiment_scores', properties=connection, mode='append')

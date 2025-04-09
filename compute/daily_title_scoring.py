@@ -2,8 +2,6 @@ import os
 from sys import argv
 import yaml
 from datetime import datetime
-
-from jedi.inference.gradual.typing import Tuple
 from nltk.sentiment import SentimentIntensityAnalyzer
 from pyspark.sql.functions import col, max, year, month, asc, udf
 from pyspark.sql.types import FloatType, StructType, StructField
@@ -53,7 +51,11 @@ connection = {
     "driver": "org.postgresql.Driver"
 }
 
-samp_query = '(SELECT id, title from sandbox_data_table) as sub_q' #table for testing purposes
+samp_query = f'''(select distinct id, title, subreddit, upvote_ratio from {credentials_dict["main_table"]}
+where id = (select id from title_sentiment_scores
+order by pos_scr desc
+limit 1)
+) as sub_q''' #table for testing purposes
 
 connection_url = f"jdbc:postgresql://{credentials_dict['ip_addr']}:{credentials_dict['port']}/{credentials_dict['db']}"
 

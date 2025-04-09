@@ -23,7 +23,7 @@ try:
         credentials = yaml.safe_load(cred_file)
 except FileNotFoundError:
     print('in except block')
-    os.chdir(os.path.expanduser('~/Desktop/Code/Projects/SparkLearning'))
+    os.chdir(os.path.expanduser('~/Projects/SparkLearning'))
     with open('credentials.yaml', 'r') as cred_file:
         credentials = yaml.safe_load(cred_file)
 
@@ -55,7 +55,7 @@ samp_query = f'''(select distinct id, title, subreddit, upvote_ratio from {crede
 where id = (select id from title_sentiment_scores
 order by pos_scr desc
 limit 1)
-) as sub_q''' #table for testing purposes
+) as sub_q'''
 
 connection_url = f"jdbc:postgresql://{credentials_dict['ip_addr']}:{credentials_dict['port']}/{credentials_dict['db']}"
 

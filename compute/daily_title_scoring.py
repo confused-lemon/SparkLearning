@@ -42,8 +42,6 @@ spark_session = SparkSession.builder \
     .master("local[*]") \
     .appName("TitleSentimentAnalysis") \
     .config("spark.jars", "/usr/local/bin/postgresql-42.7.3.jar") \
-    .config("spark.executor.memory", "4g") \
-    .config("spark.driver.memory", "4g") \
     .getOrCreate()
 
 connection = {

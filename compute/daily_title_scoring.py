@@ -63,7 +63,6 @@ existing_ids = spark_session.read.jdbc(
 ).select("id").distinct()
 
 df = df.join(existing_ids, on='id', how='left_anti')
-
 df = df.withColumn("scores_tuple", score_udf(df['title']))
 
 df = df.withColumn("pos_scr", df["scores_tuple.pos"]) \
@@ -72,3 +71,5 @@ df = df.withColumn("pos_scr", df["scores_tuple.pos"]) \
     .drop('scores_tuple', 'title')
 
 df.write.jdbc(url=connection_url, table='title_sentiment_scores', properties=connection, mode='append')
+del df
+spark_session.stop()

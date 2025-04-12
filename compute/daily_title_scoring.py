@@ -71,5 +71,5 @@ df = df.withColumn("pos_scr", df["scores_tuple.pos"]) \
     .drop('scores_tuple', 'title')
 
 df.write.jdbc(url=connection_url, table='title_sentiment_scores', properties=connection, mode='append')
-del df
+del df, existing_ids
 spark_session.stop()

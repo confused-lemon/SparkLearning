@@ -1,11 +1,13 @@
 import os
 from sys import argv
 import yaml
-from datetime import datetime
+from datetime import datetime, timedelta
 from nltk.sentiment import SentimentIntensityAnalyzer
-from pyspark.sql.functions import col, max, year, month, asc, udf
+from pyspark.sql.functions import udf
 from pyspark.sql.types import FloatType, StructType, StructField
 from pyspark.sql import SparkSession
+
+yesterday = datetime.now().date() - timedelta(days=1)
 
 title_analyzer = SentimentIntensityAnalyzer()
 def title_sentiment_score(title):
@@ -22,7 +24,6 @@ try:
     with open('credentials.yaml', 'r') as cred_file:
         credentials = yaml.safe_load(cred_file)
 except FileNotFoundError:
-    print('in except block')
     os.chdir(os.path.expanduser('~/Projects/SparkLearning'))
     with open('credentials.yaml', 'r') as cred_file:
         credentials = yaml.safe_load(cred_file)
@@ -51,22 +52,25 @@ connection = {
     "driver": "org.postgresql.Driver"
 }
 
-samp_query = f'''(select distinct id, title, subreddit, upvote_ratio from {credentials_dict["main_table"]}
-where id = (select id from title_sentiment_scores
-order by pos_scr desc
-limit 1)
-) as sub_q'''
+daily_query = f"""(select distinct on (id) id, title from main_post_data 
+where snapshot_time_utc::date = DATE '{yesterday}') as sub_q"""
 
 connection_url = f"jdbc:postgresql://{credentials_dict['ip_addr']}:{credentials_dict['port']}/{credentials_dict['db']}"
 
-df = spark_session.read.jdbc(url=connection_url, table=samp_query, properties=connection)
-df = df.dropDuplicates(subset=['id']) \
-    .withColumn("scores_tuple", score_udf(df['title']))
+df = spark_session.read.jdbc(url=connection_url, table=daily_query, properties=connection)
+existing_ids = spark_session.read.jdbc(
+    url=connection_url,
+    table='title_sentiment_scores',
+    properties=connection
+).select("id").distinct()
+
+df = df.join(existing_ids, on='id', how='left_anti')
+
+df = df.withColumn("scores_tuple", score_udf(df['title']))
 
 df = df.withColumn("pos_scr", df["scores_tuple.pos"]) \
     .withColumn("neg_scr", df["scores_tuple.neg"]) \
     .withColumn("neu_scr", df["scores_tuple.neu"]) \
     .drop('scores_tuple', 'title')
-
 
 df.write.jdbc(url=connection_url, table='title_sentiment_scores', properties=connection, mode='append')

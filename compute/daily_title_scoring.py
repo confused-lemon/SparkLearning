@@ -1,6 +1,3 @@
-import os
-from sys import argv
-import yaml
 from datetime import datetime, timedelta
 from nltk.sentiment import SentimentIntensityAnalyzer
 from pyspark.sql.functions import udf
@@ -8,8 +5,11 @@ from pyspark.sql.types import FloatType, StructType, StructField
 from pyspark.sql import SparkSession
 
 yesterday = datetime.now().date() - timedelta(days=1)
-
 title_analyzer = SentimentIntensityAnalyzer()
+
+daily_query = f"""(select distinct on (id) id, title from main_post_data 
+where snapshot_time_utc::date = DATE '{yesterday}') as sub_q"""
+
 def title_sentiment_score(title):
     scores = title_analyzer.polarity_scores(title.replace('#', ' '))
     return (scores['pos'], scores['neg'], scores['neu'])
@@ -20,56 +20,29 @@ output_schema = StructType([
 ])
 score_udf = udf(title_sentiment_score, output_schema)
 
-try:
-    with open('credentials.yaml', 'r') as cred_file:
-        credentials = yaml.safe_load(cred_file)
-except FileNotFoundError:
-    os.chdir(os.path.expanduser('~/Projects/SparkLearning'))
-    with open('credentials.yaml', 'r') as cred_file:
-        credentials = yaml.safe_load(cred_file)
+class DailyTitleScoreLoad:
+    def __init__(self, session: SparkSession, connection: dict, credentials: dict):
+        self.session = session
+        self.connection = connection
+        self.credentials = credentials
+        self.today = datetime.today().strftime('%Y-%m-%d')
+        self.connection_url = f"jdbc:postgresql://{self.credentials['ip_addr']}:{self.credentials['port']}/{self.credentials['db']}"
 
-db_info = 'Database' if ('-e' not in argv) else 'Database_Remote'
-credentials_dict = {
-            'ip_addr': credentials[db_info]['ip_addr'],
-            'port': credentials[db_info]['port'],
-            'username': credentials[db_info]['username'],
-            'db': credentials[db_info]['database'],
-            'main_table': credentials[db_info]['main_table'],
-            'password': credentials[db_info]['password']
-        }
+    def score_and_upload(self):
+        df = self.session.read.jdbc(url=self.connection_url, table=daily_query, properties=self.connection)
+        existing_ids = self.session.read.jdbc(
+            url=self.connection_url,
+            table='title_sentiment_scores',
+            properties=self.connection
+        ).select("id").distinct()
 
-spark_session = SparkSession.builder \
-    .master("local[*]") \
-    .appName("TitleSentimentAnalysis") \
-    .config("spark.jars", "/usr/local/bin/postgresql-42.7.3.jar") \
-    .getOrCreate()
+        df = df.join(existing_ids, on='id', how='left_anti')
+        df = df.withColumn("scores_tuple", score_udf(df['title']))
 
-connection = {
-    "user": credentials_dict['username'],
-    "password": credentials_dict['password'],
-    "driver": "org.postgresql.Driver"
-}
+        df = df.withColumn("pos_scr", df["scores_tuple.pos"]) \
+            .withColumn("neg_scr", df["scores_tuple.neg"]) \
+            .withColumn("neu_scr", df["scores_tuple.neu"]) \
+            .drop('scores_tuple', 'title')
 
-daily_query = f"""(select distinct on (id) id, title from main_post_data 
-where snapshot_time_utc::date = DATE '{yesterday}') as sub_q"""
-
-connection_url = f"jdbc:postgresql://{credentials_dict['ip_addr']}:{credentials_dict['port']}/{credentials_dict['db']}"
-
-df = spark_session.read.jdbc(url=connection_url, table=daily_query, properties=connection)
-existing_ids = spark_session.read.jdbc(
-    url=connection_url,
-    table='title_sentiment_scores',
-    properties=connection
-).select("id").distinct()
-
-df = df.join(existing_ids, on='id', how='left_anti')
-df = df.withColumn("scores_tuple", score_udf(df['title']))
-
-df = df.withColumn("pos_scr", df["scores_tuple.pos"]) \
-    .withColumn("neg_scr", df["scores_tuple.neg"]) \
-    .withColumn("neu_scr", df["scores_tuple.neu"]) \
-    .drop('scores_tuple', 'title')
-
-df.write.jdbc(url=connection_url, table='title_sentiment_scores', properties=connection, mode='append')
-del df, existing_ids
-spark_session.stop()
+        df.write.jdbc(url=self.connection_url, table='title_sentiment_scores', properties=self.connection, mode='append')
+        del df, existing_ids

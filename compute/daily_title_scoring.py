@@ -25,7 +25,6 @@ class DailyTitleScoreLoad:
         self.session = session
         self.connection = connection
         self.credentials = credentials
-        self.today = datetime.today().strftime('%Y-%m-%d')
         self.connection_url = f"jdbc:postgresql://{self.credentials['ip_addr']}:{self.credentials['port']}/{self.credentials['db']}"
 
     def score_and_upload(self):

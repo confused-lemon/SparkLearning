@@ -1,12 +1,19 @@
 # Python3.9
+import os
 from pyspark.sql import SparkSession
 from compute.daily_title_scoring import DailyTitleScoreLoad
 import yaml, argparse
 
 def main(remote: bool):
-    with open('credentials.yaml', 'r') as cred_file:
-        credentials = yaml.safe_load(cred_file)
-        db_info = 'Database' if not remote else 'Database_Remote'
+    try:
+        with open('credentials.yaml', 'r') as cred_file:
+            credentials = yaml.safe_load(cred_file)
+    except FileNotFoundError:
+        os.chdir(os.path.expanduser('~/Projects/SparkLearning'))
+        with open('credentials.yaml', 'r') as cred_file:
+            credentials = yaml.safe_load(cred_file)
+
+    db_info = 'Database' if not remote else 'Database_Remote'
 
     credentials_dict = {
     'ip_addr' : credentials[db_info]['ip_addr'],

@@ -5,16 +5,10 @@ from compute.daily_title_scoring import DailyTitleScoreLoad
 import yaml, argparse
 
 def main(remote: bool):
-    try:
-        with open('credentials.yaml', 'r') as cred_file:
-            credentials = yaml.safe_load(cred_file)
-    except FileNotFoundError:
-        os.chdir(os.path.dirname(__file__))
-        with open('credentials.yaml', 'r') as cred_file:
-            credentials = yaml.safe_load(cred_file)
+    with open('credentials.yaml', 'r') as cred_file:
+        credentials = yaml.safe_load(cred_file)
 
     db_info = 'Database' if not remote else 'Database_Remote'
-
     credentials_dict = {
     'ip_addr' : credentials[db_info]['ip_addr'],
     'port' : credentials[db_info]['port'],
@@ -45,4 +39,5 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--remote', action='store_true', help='Flag to indicate connection from remote network.')
     args = parser.parse_args()
     is_remote: bool = args.remote
+    os.chdir(os.path.dirname(__file__))
     main(is_remote)

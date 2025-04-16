@@ -9,7 +9,7 @@ def main(remote: bool):
         with open('credentials.yaml', 'r') as cred_file:
             credentials = yaml.safe_load(cred_file)
     except FileNotFoundError:
-        os.chdir(os.path.expanduser('~/Projects/SparkLearning'))
+        os.chdir(os.path.dirname(__file__))
         with open('credentials.yaml', 'r') as cred_file:
             credentials = yaml.safe_load(cred_file)
 
